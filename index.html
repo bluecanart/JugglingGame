@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Siteswap — A Juggling Sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">●&nbsp;●&nbsp;●</span>
+          <h1>Siteswap</h1>
+          <span class="brand-sub">a juggling sandbox</span>
+        </div>
+        <div class="controls">
+          <label class="control">
+            <span>Balls</span>
+            <select id="ball-count">
+              <option>1</option><option>2</option><option selected>3</option>
+              <option>4</option><option>5</option><option>6</option>
+              <option>7</option><option>8</option><option>9</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <section class="stage">
+        <canvas id="stage"></canvas>
+        <div class="legend">
+          <div class="legend-row"><kbd>1</kbd>–<kbd>9</kbd> <span>throw height</span></div>
+          <div class="legend-row"><kbd>←</kbd> / <kbd>→</kbd> <span>which hand throws</span></div>
+          <div class="legend-row"><kbd>R</kbd> <span>reset</span></div>
+        </div>
+      </section>
+
+      <footer class="readout">
+        <div class="readout-cell"><label>last throw</label><span id="last-throw">—</span></div>
+        <div class="readout-cell"><label>airborne</label><span id="airborne">0</span></div>
+        <div class="readout-cell"><label>L hand</label><span id="left-count">0</span></div>
+        <div class="readout-cell"><label>R hand</label><span id="right-count">0</span></div>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
