@@ -3,13 +3,11 @@ import type { Hand } from './types.ts';
 /**
  * Input controller — keyboard and pointer.
  *
- * Keyboard: hold a number 1-9, then press an arrow key (Left or Right) to
- * throw from that hand at the given height. Pressing the arrow first and
- * then a digit also works as long as both are held within a small window.
- * `R` resets.
+ * The controller owns a single "selected throw height" 1-9 that persists
+ * across throws. Pressing a digit updates it. Arrow keys (Left/Right) and
+ * clicks on a hand both throw using the currently selected height.
  *
- * Pointer: clicking a hand is equivalent to pressing the corresponding
- * arrow key — a digit must be held for the click to register.
+ * `R` resets.
  */
 export interface InputCallbacks {
   onThrow: (hand: Hand, value: number) => void;
@@ -20,18 +18,28 @@ export interface InputCallbacks {
 export type HandHitTest = (x: number, y: number) => Hand | null;
 
 export class InputController {
-  private heldDigit: number | null = null;
+  private selectedHeight: number;
 
-  constructor(private cb: InputCallbacks) {}
+  constructor(
+    private cb: InputCallbacks,
+    initialHeight: number,
+  ) {
+    this.selectedHeight = initialHeight;
+  }
+
+  getSelectedHeight(): number {
+    return this.selectedHeight;
+  }
+
+  setSelectedHeight(value: number): void {
+    this.selectedHeight = value;
+  }
 
   attach(target: Window | HTMLElement = window): () => void {
     const onKeyDown = (e: KeyboardEvent) => this.handleKeyDown(e);
-    const onKeyUp = (e: KeyboardEvent) => this.handleKeyUp(e);
     target.addEventListener('keydown', onKeyDown as EventListener);
-    target.addEventListener('keyup', onKeyUp as EventListener);
     return () => {
       target.removeEventListener('keydown', onKeyDown as EventListener);
-      target.removeEventListener('keyup', onKeyUp as EventListener);
     };
   }
 
@@ -47,11 +55,10 @@ export class InputController {
     };
 
     const onClick = (e: MouseEvent) => {
-      if (this.heldDigit === null) return;
       const { x, y } = localCoords(e);
       const hand = hitTest(x, y);
       if (!hand) return;
-      this.cb.onThrow(hand, this.heldDigit);
+      this.cb.onThrow(hand, this.selectedHeight);
       e.preventDefault();
     };
 
@@ -80,17 +87,15 @@ export class InputController {
     if (target && (target.tagName === 'SELECT' || target.tagName === 'INPUT')) return;
 
     if (e.key >= '1' && e.key <= '9') {
-      this.heldDigit = parseInt(e.key, 10);
+      this.selectedHeight = parseInt(e.key, 10);
       e.preventDefault();
       return;
     }
 
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       const hand: Hand = e.key === 'ArrowLeft' ? 'L' : 'R';
-      if (this.heldDigit !== null) {
-        this.cb.onThrow(hand, this.heldDigit);
-        e.preventDefault();
-      }
+      this.cb.onThrow(hand, this.selectedHeight);
+      e.preventDefault();
       return;
     }
 
@@ -99,10 +104,4 @@ export class InputController {
     }
   }
 
-  private handleKeyUp(e: KeyboardEvent): void {
-    if (e.key >= '1' && e.key <= '9') {
-      const released = parseInt(e.key, 10);
-      if (this.heldDigit === released) this.heldDigit = null;
-    }
-  }
 }

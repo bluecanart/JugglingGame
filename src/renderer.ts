@@ -12,7 +12,7 @@ export class Renderer {
     private getSize: () => { w: number; h: number; dpr: number },
   ) {}
 
-  draw(game: Game, now: number): void {
+  draw(game: Game, now: number, selectedHeight: number): void {
     const { w, h } = this.getSize();
     const ctx = this.ctx;
 
@@ -40,6 +40,26 @@ export class Renderer {
     this.drawHeldBalls(game, 'L');
     this.drawHeldBalls(game, 'R');
 
+    this.drawHeightIndicator(w, selectedHeight);
+
+    ctx.restore();
+  }
+
+  private drawHeightIndicator(w: number, value: number): void {
+    const ctx = this.ctx;
+    ctx.save();
+    const x = w - 24;
+    const labelY = 28;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+
+    ctx.fillStyle = 'rgba(40, 30, 20, 0.45)';
+    ctx.font = '600 11px "JetBrains Mono", monospace';
+    ctx.fillText('THROW HEIGHT', x, labelY);
+
+    ctx.fillStyle = '#3B2C24';
+    ctx.font = '800 38px "Fraunces", serif';
+    ctx.fillText(String(value), x, labelY + 38);
     ctx.restore();
   }
 
