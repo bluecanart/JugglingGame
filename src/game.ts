@@ -87,7 +87,7 @@ export class Game {
 
     const toHand = destinationHand(fromHand, value);
     const air = airTimeSeconds(value) * 1000;
-    const peak = peakHeightPx(value);
+    const peak = peakHeightPx(value, this.anchors.y);
 
     const startX = fromHand === 'L' ? this.anchors.leftX : this.anchors.rightX;
     const endX = toHand === 'L' ? this.anchors.leftX : this.anchors.rightX;
