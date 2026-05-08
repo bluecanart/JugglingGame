@@ -60,6 +60,20 @@ const input = new InputController({
   },
 });
 input.attach(window);
+input.attachPointer(canvas, (x, y) => {
+  // Generous hit box around the visible palm + forearm so a casual click
+  // anywhere on the hand region registers. See renderer.drawHand for the
+  // visible geometry: palm centred at (handX, anchors.y + 31), forearm
+  // extending below to roughly y + 118.
+  const a = game.anchors;
+  const halfW = 60;
+  const top = a.y - 4;
+  const bottom = a.y + 120;
+  if (y < top || y > bottom) return null;
+  if (Math.abs(x - a.leftX) <= halfW) return 'L';
+  if (Math.abs(x - a.rightX) <= halfW) return 'R';
+  return null;
+});
 
 ballCountSelect.addEventListener('change', () => {
   game.reset({ ballCount: parseInt(ballCountSelect.value, 10) });
