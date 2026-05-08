@@ -36,6 +36,11 @@ export class Game {
   /** Most recent throw value, for the HUD. */
   lastThrow: { value: number; fromHand: Hand } | null = null;
 
+  /** Time-scale on throw air time. >1 = faster, <1 = slower. Peak height is
+   *  unaffected so balls reach the same apex but traverse the arc at a
+   *  different rate. */
+  private speed = 1;
+
   private nextBallId = 1;
 
   constructor(
@@ -86,7 +91,7 @@ export class Game {
     const ball = this.balls.get(ballId)!;
 
     const toHand = destinationHand(fromHand, value);
-    const air = airTimeSeconds(value) * 1000;
+    const air = (airTimeSeconds(value) * 1000) / this.speed;
     const peak = peakHeightPx(value, this.anchors.y);
 
     const startX = fromHand === 'L' ? this.anchors.leftX : this.anchors.rightX;
@@ -133,6 +138,12 @@ export class Game {
   /** Update hand anchor positions (call on canvas resize). */
   setAnchors(anchors: HandAnchors): void {
     this.anchors = anchors;
+  }
+
+  /** Set the throw-time multiplier. Affects throws made after this call;
+   *  in-flight balls keep their original timing. */
+  setSpeed(speed: number): void {
+    this.speed = speed;
   }
 
   /** Read-only snapshot helpers for the HUD. */

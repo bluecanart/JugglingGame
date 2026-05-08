@@ -6,6 +6,7 @@ import { InputController } from './input.ts';
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 const ballCountSelect = document.getElementById('ball-count') as HTMLSelectElement;
+const speedSelect = document.getElementById('speed') as HTMLSelectElement;
 const lastThrowEl = document.getElementById('last-throw')!;
 const airborneEl = document.getElementById('airborne')!;
 const leftCountEl = document.getElementById('left-count')!;
@@ -51,14 +52,17 @@ const game = new Game(
 const renderer = new Renderer(ctx, () => ({ w: cssW, h: cssH, dpr }));
 
 // --- Input ---
-const input = new InputController({
-  onThrow: (hand, value) => {
-    game.throwBall(hand, value, performance.now());
+const input = new InputController(
+  {
+    onThrow: (hand, value) => {
+      game.throwBall(hand, value, performance.now());
+    },
+    onReset: () => {
+      game.reset({ ballCount: parseInt(ballCountSelect.value, 10) });
+    },
   },
-  onReset: () => {
-    game.reset({ ballCount: parseInt(ballCountSelect.value, 10) });
-  },
-});
+  parseInt(ballCountSelect.value, 10),
+);
 input.attach(window);
 input.attachPointer(canvas, (x, y) => {
   // Generous hit box around the visible palm + forearm so a casual click
@@ -76,9 +80,17 @@ input.attachPointer(canvas, (x, y) => {
 });
 
 ballCountSelect.addEventListener('change', () => {
-  game.reset({ ballCount: parseInt(ballCountSelect.value, 10) });
+  const count = parseInt(ballCountSelect.value, 10);
+  game.reset({ ballCount: count });
+  input.setSelectedHeight(count);
   // Blur so subsequent key presses go to the window listener, not the select.
   ballCountSelect.blur();
+});
+
+game.setSpeed(parseFloat(speedSelect.value));
+speedSelect.addEventListener('change', () => {
+  game.setSpeed(parseFloat(speedSelect.value));
+  speedSelect.blur();
 });
 
 // --- HUD updates -------------------------------------------------------------
@@ -94,7 +106,7 @@ function updateHud(): void {
 // --- Main loop ---------------------------------------------------------------
 function frame(now: number): void {
   game.update(now);
-  renderer.draw(game, now);
+  renderer.draw(game, now, input.getSelectedHeight());
   updateHud();
   requestAnimationFrame(frame);
 }
