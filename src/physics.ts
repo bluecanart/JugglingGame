@@ -28,21 +28,20 @@ export const BEAT_TIME = 0.42;
 export const DWELL = 0.7;
 
 /**
- * Pixel "gravity". With BEAT_TIME=0.42 and DWELL=0.7 the *true* physics formula
- * H = G*Z²/8 produces a ratio of ~30:1 between value 9 and value 3, which pushes
- * a `9` clean off the top of any reasonably-sized canvas while making a `3` a
- * tiny pebble. We keep the air-time formula faithful (so timing feels right)
- * but apply a gentle non-linear compression to the *visual* peak height in
- * `peakHeightPx()` so 1..9 all fit on a typical screen while preserving the
- * ordering and the "low-vs-high" feel.
+ * Pixel "gravity". Sets the *relative* heights between siteswap values; the
+ * absolute size is mapped to the available canvas headroom in `peakHeightPx()`.
+ * We keep the air-time formula faithful (so timing feels right) and apply a
+ * sqrt compression to the visual peak so 1..9 fit on screen while preserving
+ * the non-linear "diminishing returns" feel of real juggling.
  */
 export const GRAVITY_PX = 1800;
 
 /**
- * Cap on the visual peak height (pixels above the hand). The compression below
- * is calibrated so a `9` lands near this value.
+ * Pixels of breathing room above the highest peak. Big enough to clear the
+ * ball radius and its outline so a `9` reaches near — but doesn't clip — the
+ * top of the canvas.
  */
-export const MAX_PEAK_PX = 420;
+export const TOP_MARGIN_PX = 30;
 
 /**
  * Returns whether a siteswap value crosses to the other hand.
@@ -62,20 +61,22 @@ export function airTimeSeconds(value: number): number {
 }
 
 /**
- * Peak height in pixels for a given siteswap value.
+ * Peak height in pixels for a given siteswap value, calibrated so a `9` peaks
+ * `TOP_MARGIN_PX` below the top of the available headroom. Smaller values
+ * scale by the same sqrt-compressed kinematic formula
+ * (compressed = sqrt(G * Z² / 8)) so ordering and the non-linear feel are
+ * preserved across canvas sizes.
  *
- * Derivation: H_true = G * Z^2 / 8. We then apply a sqrt compression so the
- * dynamic range fits the screen. The result preserves ordering (higher value
- * = higher peak) and the non-linear "diminishing returns" feel, but caps out
- * around MAX_PEAK_PX for a `9`.
+ * `headroom` is the pixel distance from the top of the canvas to the hand —
+ * i.e. all the vertical space the throw can use.
  */
-export function peakHeightPx(value: number): number {
-  const z = airTimeSeconds(value);
-  const trueH = (GRAVITY_PX * z * z) / 8;
-  // Compress: sqrt keeps small values visible while taming large ones.
-  // Tuned constant scales the result so a `9` lands near MAX_PEAK_PX.
-  const compressed = Math.sqrt(trueH) * 9.5;
-  return Math.min(compressed, MAX_PEAK_PX);
+export function peakHeightPx(value: number, headroom: number): number {
+  const targetMax = Math.max(headroom - TOP_MARGIN_PX, 100);
+  const compressed9 = Math.sqrt((GRAVITY_PX * airTimeSeconds(9) ** 2) / 8);
+  const scale = targetMax / compressed9;
+
+  const compressed = Math.sqrt((GRAVITY_PX * airTimeSeconds(value) ** 2) / 8);
+  return Math.min(compressed * scale, targetMax);
 }
 
 /**
