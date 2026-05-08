@@ -1,20 +1,23 @@
 import type { Hand } from './types.ts';
 
 /**
- * Keyboard controller.
+ * Input controller — keyboard and pointer.
  *
- * Pattern: hold a number 1-9, then press an arrow key (Left or Right) to throw
- * from that hand at the given height. Order doesn't strictly matter — pressing
- * the arrow first and then a digit also works as long as both are held within
- * a small window. We also allow the simpler "press digit first, then arrow"
- * which feels most natural.
+ * Keyboard: hold a number 1-9, then press an arrow key (Left or Right) to
+ * throw from that hand at the given height. Pressing the arrow first and
+ * then a digit also works as long as both are held within a small window.
+ * `R` resets.
  *
- * The `R` key resets via callback.
+ * Pointer: clicking a hand is equivalent to pressing the corresponding
+ * arrow key — a digit must be held for the click to register.
  */
 export interface InputCallbacks {
   onThrow: (hand: Hand, value: number) => void;
   onReset: () => void;
 }
+
+/** Hit-test function: maps canvas-local coords to a hand, or null if neither. */
+export type HandHitTest = (x: number, y: number) => Hand | null;
 
 export class InputController {
   private heldDigit: number | null = null;
@@ -29,6 +32,45 @@ export class InputController {
     return () => {
       target.removeEventListener('keydown', onKeyDown as EventListener);
       target.removeEventListener('keyup', onKeyUp as EventListener);
+    };
+  }
+
+  /**
+   * Wire up click-to-throw on a canvas. `hitTest` is called with canvas-local
+   * (CSS pixel) coordinates and should return which hand was hit, if any.
+   * Also sets `cursor: pointer` while the pointer is over a hand.
+   */
+  attachPointer(canvas: HTMLCanvasElement, hitTest: HandHitTest): () => void {
+    const localCoords = (e: MouseEvent): { x: number; y: number } => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+
+    const onClick = (e: MouseEvent) => {
+      if (this.heldDigit === null) return;
+      const { x, y } = localCoords(e);
+      const hand = hitTest(x, y);
+      if (!hand) return;
+      this.cb.onThrow(hand, this.heldDigit);
+      e.preventDefault();
+    };
+
+    const onMove = (e: MouseEvent) => {
+      const { x, y } = localCoords(e);
+      canvas.style.cursor = hitTest(x, y) ? 'pointer' : 'default';
+    };
+
+    const onLeave = () => {
+      canvas.style.cursor = 'default';
+    };
+
+    canvas.addEventListener('click', onClick);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseleave', onLeave);
+    return () => {
+      canvas.removeEventListener('click', onClick);
+      canvas.removeEventListener('mousemove', onMove);
+      canvas.removeEventListener('mouseleave', onLeave);
     };
   }
 
