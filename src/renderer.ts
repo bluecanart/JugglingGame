@@ -85,8 +85,11 @@ export class Renderer {
     const ctx = this.ctx;
     const x = side === 'L' ? game.anchors.leftX : game.anchors.rightX;
     const y = game.anchors.y;
+    const isEmpty = game.hands[side].balls.length === 0;
 
     ctx.save();
+    // Fade an empty hand to signal it has nothing to throw.
+    if (isEmpty) ctx.globalAlpha = 0.5;
     // A simple pill-shaped "palm" — abstract on purpose, easy to swap later.
     ctx.fillStyle = '#3B2C24';
     ctx.beginPath();
