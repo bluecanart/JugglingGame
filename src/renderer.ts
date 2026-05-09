@@ -1,6 +1,17 @@
 import type { Game } from './game.ts';
 import type { Ball, Hand } from './types.ts';
-import { arcPosition } from './physics.ts';
+import { arcPosition, heightIndicatorY } from './physics.ts';
+
+// 800px is the width at which the desktop sizes look right; below that we
+// shrink proportionally, floored at 0.55 so things don't get unreadable.
+export function uiScale(canvasWidthPx: number): number {
+  return Math.min(1, Math.max(0.55, canvasWidthPx / 800));
+}
+
+// Y of the floor line that begins the shaded "ground" zone below the hands.
+export function floorY(anchorY: number, canvasWidthPx: number): number {
+  return anchorY + 60 * uiScale(canvasWidthPx);
+}
 
 /**
  * Pure rendering: takes the game state and a 2D context, and paints.
@@ -17,7 +28,7 @@ export class Renderer {
     const ctx = this.ctx;
     // Single scale factor for every on-canvas element so hands, balls, labels,
     // and the floor all shrink together on narrow mobile viewports.
-    const scale = this.uiScale(w);
+    const scale = uiScale(w);
 
     // Background: warm paper with a subtle vignette.
     ctx.save();
@@ -30,9 +41,12 @@ export class Renderer {
     // Soft floor line so hands feel anchored
     this.drawFloor(w, h, game.anchors.y, scale);
 
+    // Height grid sits behind the actors so balls and hands pass over it.
+    this.drawHeightMarks(w, game.anchors.y, selectedHeight, scale);
+
     // Hands
-    this.drawHand(game, 'L', scale);
-    this.drawHand(game, 'R', scale);
+    this.drawHand(game, 'L', scale, now);
+    this.drawHand(game, 'R', scale, now);
 
     // Balls — in-flight first (behind hands look) then held (in front).
     // Doing it the other way around looks fine too; this just prevents flicker
@@ -43,76 +57,108 @@ export class Renderer {
     this.drawHeldBalls(game, 'L', scale);
     this.drawHeldBalls(game, 'R', scale);
 
-    this.drawHeightIndicator(w, selectedHeight, scale);
-
     ctx.restore();
   }
 
-  // 800px is the width at which the desktop sizes look right; below that we
-  // shrink proportionally, floored at 0.55 so things don't get unreadable.
-  private uiScale(w: number): number {
-    return Math.min(1, Math.max(0.55, w / 800));
-  }
-
-  private drawHeightIndicator(w: number, value: number, scale: number): void {
+  private drawHeightMarks(w: number, anchorY: number, selected: number, scale: number): void {
     const ctx = this.ctx;
+    const margin = 10 * scale;
+    const labelGap = 6 * scale;
+    const labelSize = 12 * scale;
+    // Dash that scales with the canvas so the rhythm reads the same on mobile.
+    const dash: [number, number] = [8 * scale, 6 * scale];
+    // Gap straddling the canvas centerline so the left/right halves read as
+    // separate throw zones.
+    const centerGap = 28 * scale;
+
     ctx.save();
-    const labelSize = 11 * scale;
-    const numberSize = 38 * scale;
-    const margin = 24 * scale;
-    const x = w - margin;
-    const labelY = 28 * scale;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'alphabetic';
-
-    ctx.fillStyle = 'rgba(40, 30, 20, 0.45)';
     ctx.font = `600 ${labelSize}px "JetBrains Mono", monospace`;
-    ctx.fillText('THROW HEIGHT', x, labelY);
+    ctx.textBaseline = 'middle';
 
-    ctx.fillStyle = '#3B2C24';
-    ctx.font = `800 ${numberSize}px "Fraunces", serif`;
-    ctx.fillText(String(value), x, labelY + numberSize);
+    for (let v = 1; v <= 9; v++) {
+      const y = heightIndicatorY(v, anchorY);
+      const isSelected = v === selected;
+      const stroke = isSelected ? 'rgba(59, 44, 36, 0.4)' : 'rgba(40, 30, 20, 0.18)';
+      const fill = isSelected ? '#3B2C24' : 'rgba(40, 30, 20, 0.55)';
+      ctx.strokeStyle = stroke;
+      ctx.fillStyle = fill;
+      ctx.lineWidth = isSelected ? 1.5 : 1;
+      ctx.setLineDash(dash);
+
+      // Reserve space at both ends for the number labels so the dashes don't
+      // run into them.
+      const numW = ctx.measureText(String(v)).width;
+      const lineStart = margin + numW + labelGap;
+      const lineEnd = w - margin - numW - labelGap;
+      const cx = w / 2;
+      const leftEnd = cx - centerGap / 2;
+      const rightStart = cx + centerGap / 2;
+      if (leftEnd > lineStart) {
+        ctx.beginPath();
+        ctx.moveTo(lineStart, y);
+        ctx.lineTo(leftEnd, y);
+        ctx.stroke();
+      }
+      if (lineEnd > rightStart) {
+        ctx.beginPath();
+        ctx.moveTo(rightStart, y);
+        ctx.lineTo(lineEnd, y);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([]);
+      ctx.textAlign = 'left';
+      ctx.fillText(String(v), margin, y);
+      ctx.textAlign = 'right';
+      ctx.fillText(String(v), w - margin, y);
+    }
     ctx.restore();
   }
 
-  private drawFloor(w: number, h: number, y: number, scale: number): void {
+  private drawFloor(w: number, h: number, anchorY: number, _scale: number): void {
     const ctx = this.ctx;
-    const floorY = y + 60 * scale;
+    const fy = floorY(anchorY, w);
     ctx.save();
     ctx.strokeStyle = 'rgba(40, 30, 20, 0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, floorY);
-    ctx.lineTo(w, floorY);
+    ctx.moveTo(0, fy);
+    ctx.lineTo(w, fy);
     ctx.stroke();
     // Subtle horizon shadow
-    const shadow = ctx.createLinearGradient(0, floorY, 0, h);
+    const shadow = ctx.createLinearGradient(0, fy, 0, h);
     shadow.addColorStop(0, 'rgba(40, 30, 20, 0.06)');
     shadow.addColorStop(1, 'rgba(40, 30, 20, 0)');
     ctx.fillStyle = shadow;
-    ctx.fillRect(0, floorY, w, h - floorY);
+    ctx.fillRect(0, fy, w, h - fy);
     ctx.restore();
   }
 
-  private drawHand(game: Game, side: Hand, scale: number): void {
+  private drawHand(game: Game, side: Hand, scale: number, now: number): void {
     const ctx = this.ctx;
     const x = side === 'L' ? game.anchors.leftX : game.anchors.rightX;
     const y = game.anchors.y;
     const isEmpty = game.hands[side].balls.length === 0;
 
+    // Click-feedback flash: linear fade-out over FLASH_MS, used to darken the
+    // palm and forearm so the user sees which side responded.
+    const FLASH_MS = 200;
+    const flash = Math.max(0, Math.min(1, 1 - (now - game.handFlashAt[side]) / FLASH_MS));
+
     ctx.save();
     // Fade an empty hand to signal it has nothing to throw.
     if (isEmpty) ctx.globalAlpha = 0.5;
     // A simple pill-shaped "palm" — abstract on purpose, easy to swap later.
-    ctx.fillStyle = '#3B2C24';
+    ctx.fillStyle = flash > 0 ? this.darken('#3B2C24', flash * 0.6) : '#3B2C24';
     ctx.beginPath();
     const palmW = 90 * scale;
     const palmH = 26 * scale;
     this.roundRect(ctx, x - palmW / 2, y + 18 * scale, palmW, palmH, palmH / 2);
     ctx.fill();
 
-    // Forearm hint
-    ctx.fillStyle = 'rgba(59, 44, 36, 0.55)';
+    // Forearm hint — darkens with the same flash factor for cohesion.
+    const armAlpha = 0.55 + flash * 0.35;
+    ctx.fillStyle = `rgba(59, 44, 36, ${armAlpha})`;
     ctx.beginPath();
     const armW = 26 * scale;
     const armOffset = (side === 'L' ? -28 : 28) * scale;

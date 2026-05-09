@@ -88,6 +88,33 @@ export function destinationHand(fromHand: 'L' | 'R', value: number): 'L' | 'R' {
 }
 
 /**
+ * Canvas y-coordinate where the peak of a `value` throw sits, given the hand
+ * anchor y. Used both for drawing the side height indicators and for matching
+ * a click's y to the closest indicator.
+ */
+export function heightIndicatorY(value: number, anchorY: number): number {
+  return anchorY - peakHeightPx(value, anchorY);
+}
+
+/**
+ * Picks the siteswap value 1..9 whose indicator y is closest to `clickY`.
+ * Clicks above the topmost indicator snap to 9; clicks below the lowest snap
+ * to 1, so any click anywhere on the canvas resolves to a height.
+ */
+export function closestHeight(clickY: number, anchorY: number): number {
+  let best = 1;
+  let bestDist = Infinity;
+  for (let v = 1; v <= 9; v++) {
+    const dist = Math.abs(clickY - heightIndicatorY(v, anchorY));
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = v;
+    }
+  }
+  return best;
+}
+
+/**
  * Position along a parabolic arc from (x0, y0) to (x1, y1) with a given peak height
  * above the *higher* of the two endpoints. `t` is normalised 0..1.
  *

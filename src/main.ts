@@ -1,6 +1,7 @@
 import { Game } from './game.ts';
-import { Renderer } from './renderer.ts';
+import { Renderer, floorY } from './renderer.ts';
 import { InputController } from './input.ts';
+import { closestHeight } from './physics.ts';
 import type { PaletteKey } from './types.ts';
 
 // --- DOM refs ----------------------------------------------------------------
@@ -65,13 +66,20 @@ const input = new InputController(
     onReset: () => {
       game.reset({ ballCount: parseInt(ballCountSelect.value, 10) });
     },
+    onHandActivate: (hand) => {
+      game.flashHand(hand, performance.now());
+    },
   },
   parseInt(ballCountSelect.value, 10),
 );
 input.attach(window);
-input.attachPointer(canvas, (x) => {
-  return x < cssW / 2 ? 'L' : 'R';
-});
+input.attachPointer(
+  canvas,
+  (x) => (x < cssW / 2 ? 'L' : 'R'),
+  // Clicks at or below the floor line (the shaded ground zone under the hands)
+  // keep the current selected height instead of snapping to 1.
+  (y) => (y >= floorY(game.anchors.y, cssW) ? null : closestHeight(y, game.anchors.y)),
+);
 
 ballCountSelect.addEventListener('change', () => {
   const count = parseInt(ballCountSelect.value, 10);
