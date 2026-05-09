@@ -12,6 +12,10 @@ import type { Hand } from './types.ts';
 export interface InputCallbacks {
   onThrow: (hand: Hand, value: number) => void;
   onReset: () => void;
+  /** Fired whenever a hand is picked (click or arrow key) before the throw,
+   *  so the UI can flash the picked hand even if it's empty and no throw
+   *  actually happens. */
+  onHandActivate?: (hand: Hand) => void;
 }
 
 /** Hit-test function: maps canvas-local coords to a hand, or null if neither. */
@@ -46,9 +50,16 @@ export class InputController {
   /**
    * Wire up click-to-throw on a canvas. `hitTest` is called with canvas-local
    * (CSS pixel) coordinates and should return which hand was hit, if any.
-   * Also sets `cursor: pointer` while the pointer is over a hand.
+   * `resolveHeight` (optional) maps a click's y to a siteswap value 1..9 by
+   * matching against the side height indicators — return `null` to leave the
+   * selected height unchanged (e.g. for clicks below the hands). Also sets
+   * `cursor: pointer` while the pointer is over a hand.
    */
-  attachPointer(canvas: HTMLCanvasElement, hitTest: HandHitTest): () => void {
+  attachPointer(
+    canvas: HTMLCanvasElement,
+    hitTest: HandHitTest,
+    resolveHeight?: (y: number) => number | null,
+  ): () => void {
     const localCoords = (e: MouseEvent): { x: number; y: number } => {
       const rect = canvas.getBoundingClientRect();
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -58,6 +69,11 @@ export class InputController {
       const { x, y } = localCoords(e);
       const hand = hitTest(x, y);
       if (!hand) return;
+      if (resolveHeight) {
+        const h = resolveHeight(y);
+        if (h !== null) this.selectedHeight = h;
+      }
+      this.cb.onHandActivate?.(hand);
       this.cb.onThrow(hand, this.selectedHeight);
       e.preventDefault();
     };
@@ -94,7 +110,15 @@ export class InputController {
 
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       const hand: Hand = e.key === 'ArrowLeft' ? 'L' : 'R';
+      this.cb.onHandActivate?.(hand);
       this.cb.onThrow(hand, this.selectedHeight);
+      e.preventDefault();
+      return;
+    }
+
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const delta = e.key === 'ArrowUp' ? 1 : -1;
+      this.selectedHeight = Math.max(1, Math.min(9, this.selectedHeight + delta));
       e.preventDefault();
       return;
     }

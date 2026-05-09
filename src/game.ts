@@ -54,6 +54,10 @@ export class Game {
   /** Most recent throw value, for the HUD. */
   lastThrow: { value: number; fromHand: Hand } | null = null;
 
+  /** Last time each hand was activated (clicked), in ms. The renderer uses
+   *  this to briefly darken the hand as click feedback. */
+  handFlashAt: Record<Hand, number> = { L: -Infinity, R: -Infinity };
+
   /** Time-scale on throw air time. >1 = faster, <1 = slower. Peak height is
    *  unaffected so balls reach the same apex but traverse the arc at a
    *  different rate. */
@@ -174,6 +178,11 @@ export class Game {
    *  in-flight balls keep their original timing. */
   setSpeed(speed: number): void {
     this.speed = speed;
+  }
+
+  /** Record a click on `side` so the renderer can flash that hand. */
+  flashHand(side: Hand, now: number): void {
+    this.handFlashAt[side] = now;
   }
 
   /** Read-only snapshot helpers for the HUD. */

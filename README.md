@@ -6,12 +6,26 @@ Throws are notated using [siteswap](http://www.juggling.org/help/siteswap/ssintr
 
 ## Controls
 
-- **Ball count selector** — top-right dropdown, 1–9 balls. Right hand gets the extra ball when count is odd.
-- **Throw** — hold a number `1`–`9`, then press `←` (left hand throws) or `→` (right hand throws).
-  - Press digit, then arrow. Order: number first, arrow second.
-  - If the throwing hand is empty, nothing happens.
-  - Odd values cross hands; even values return to the same hand. Higher value = higher arc.
-- **Reset** — press `R`.
+The canvas shows nine dashed horizontal lines at the peak heights of throws `1`–`9`. The currently selected height has a darker line.
+
+### Top bar
+
+- **Balls** — 1–9. Right hand gets the extra ball when count is odd. Changing this resets the juggle and sets the selected throw height to the new ball count.
+- **Speed** — `1/4x`, `1/2x`, `3/4x`, `1x`, `2x`. Scales air time only; peak height is unchanged, so balls reach the same apex but traverse the arc faster or slower.
+- **Palette** — `Multicolor`, single colors (`Orange`, `Red`, `Yellow`, `Green`, `Blue`, `Purple`, `Pink`, `White`, `Black`), or `One Red / Others White`. Re-colors balls live without resetting.
+
+### Keyboard
+
+- **`1`–`9`** — set the selected throw height. The matching dashed line on the canvas darkens to confirm.
+- **`↑` / `↓`** — step the selected throw height up or down by one (clamped to `1`–`9`).
+- **`←` / `→`** — throw from the left or right hand at the selected height. Empty hands do nothing.
+- **`R`** — reset.
+
+### Mouse
+
+- **Click** — throws from the nearer hand (based on click x) at the height nearest your click (snapped to the closest dashed line by y). The selected height updates to that value.
+
+Odd values cross hands; even values return to the same hand. Higher value = higher arc.
 
 ## Run locally
 
@@ -60,7 +74,7 @@ src/
   physics.ts    Siteswap math: air time, peak height, parabolic arc
   game.ts       Mutable game state. The only module that mutates balls/hands.
   renderer.ts   Pure canvas drawing. Reads game state, never mutates it.
-  input.ts      Keyboard controller.
+  input.ts      Keyboard + pointer controller. Owns the selected throw height.
   main.ts       Wires it all together + DOM/HUD.
 ```
 
