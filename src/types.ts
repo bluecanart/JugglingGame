@@ -36,6 +36,20 @@ export interface HandState {
   balls: number[];
 }
 
+export type PaletteKey =
+  | 'multi'
+  | 'orange'
+  | 'red'
+  | 'yellow'
+  | 'green'
+  | 'blue'
+  | 'purple'
+  | 'pink'
+  | 'white'
+  | 'black'
+  | 'one-red';
+
 export interface GameConfig {
   ballCount: number;
+  palette?: PaletteKey;
 }

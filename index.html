@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Siteswap — A Juggling Sandbox</title>
+    <title>Juggle.io — A Juggling Sandbox</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark">●&nbsp;●&nbsp;●</span>
-          <h1>Siteswap</h1>
+          <h1>Juggle.io</h1>
           <span class="brand-sub">a juggling sandbox</span>
         </div>
         <div class="controls">
@@ -36,6 +36,22 @@
               <option value="2">2x</option>
             </select>
           </label>
+          <label class="control">
+            <span>Palette</span>
+            <select id="palette">
+              <option value="multi" selected>Multicolor</option>
+              <option value="orange">Orange</option>
+              <option value="red">Red</option>
+              <option value="yellow">Yellow</option>
+              <option value="green">Green</option>
+              <option value="blue">Blue</option>
+              <option value="purple">Purple</option>
+              <option value="pink">Pink</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="one-red">One Red / Others White</option>
+            </select>
+          </label>
         </div>
       </header>
 
@@ -44,7 +60,7 @@
         <div class="legend">
           <div class="legend-row"><kbd>1</kbd>–<kbd>9</kbd> <span>throw height</span></div>
           <div class="legend-row"><kbd>←</kbd> / <kbd>→</kbd> <span>which hand throws</span></div>
-          <div class="legend-row"><kbd>click</kbd> <span>throw from clicked hand</span></div>
+          <div class="legend-row"><kbd>click</kbd> <span>left/right side throws from that hand</span></div>
           <div class="legend-row"><kbd>R</kbd> <span>reset</span></div>
         </div>
       </section>

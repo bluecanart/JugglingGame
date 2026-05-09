@@ -1,4 +1,4 @@
-# Siteswap — A Juggling Sandbox
+# Juggle.io — A Juggling Sandbox
 
 A small juggling toy built with TypeScript + Vite + Canvas, deployable to GitHub Pages.
 
