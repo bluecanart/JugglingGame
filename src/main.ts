@@ -1,12 +1,14 @@
 import { Game } from './game.ts';
 import { Renderer } from './renderer.ts';
 import { InputController } from './input.ts';
+import type { PaletteKey } from './types.ts';
 
 // --- DOM refs ----------------------------------------------------------------
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
 const ballCountSelect = document.getElementById('ball-count') as HTMLSelectElement;
 const speedSelect = document.getElementById('speed') as HTMLSelectElement;
+const paletteSelect = document.getElementById('palette') as HTMLSelectElement;
 const lastThrowEl = document.getElementById('last-throw')!;
 const airborneEl = document.getElementById('airborne')!;
 const leftCountEl = document.getElementById('left-count')!;
@@ -46,7 +48,10 @@ function computeAnchors() {
 // --- Game ---
 const game = new Game(
   { leftX: 0, rightX: 0, y: 0 }, // will be overwritten by resize() below
-  { ballCount: parseInt(ballCountSelect.value, 10) },
+  {
+    ballCount: parseInt(ballCountSelect.value, 10),
+    palette: paletteSelect.value as PaletteKey,
+  },
 );
 
 const renderer = new Renderer(ctx, () => ({ w: cssW, h: cssH, dpr }));
@@ -64,19 +69,8 @@ const input = new InputController(
   parseInt(ballCountSelect.value, 10),
 );
 input.attach(window);
-input.attachPointer(canvas, (x, y) => {
-  // Generous hit box around the visible palm + forearm so a casual click
-  // anywhere on the hand region registers. See renderer.drawHand for the
-  // visible geometry: palm centred at (handX, anchors.y + 31), forearm
-  // extending below to roughly y + 118.
-  const a = game.anchors;
-  const halfW = 60;
-  const top = a.y - 4;
-  const bottom = a.y + 120;
-  if (y < top || y > bottom) return null;
-  if (Math.abs(x - a.leftX) <= halfW) return 'L';
-  if (Math.abs(x - a.rightX) <= halfW) return 'R';
-  return null;
+input.attachPointer(canvas, (x) => {
+  return x < cssW / 2 ? 'L' : 'R';
 });
 
 ballCountSelect.addEventListener('change', () => {
@@ -91,6 +85,11 @@ game.setSpeed(parseFloat(speedSelect.value));
 speedSelect.addEventListener('change', () => {
   game.setSpeed(parseFloat(speedSelect.value));
   speedSelect.blur();
+});
+
+paletteSelect.addEventListener('change', () => {
+  game.setPalette(paletteSelect.value as PaletteKey);
+  paletteSelect.blur();
 });
 
 // --- HUD updates -------------------------------------------------------------

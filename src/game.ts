@@ -1,21 +1,39 @@
-import type { Ball, GameConfig, Hand, HandState, ThrowRecord } from './types.ts';
+import type { Ball, GameConfig, Hand, HandState, PaletteKey, ThrowRecord } from './types.ts';
 import { airTimeSeconds, destinationHand, peakHeightPx } from './physics.ts';
 
 /**
  * A pleasant, varied palette. Cycled through as balls are spawned.
  * Picked for high contrast on the warm canvas background.
  */
-const BALL_PALETTE = [
-  '#E63946', // tomato
-  '#F4A261', // marigold
-  '#E9C46A', // mustard
-  '#2A9D8F', // teal
-  '#264653', // deep slate
-  '#8E7DBE', // lavender
-  '#D7263D', // crimson
-  '#1B998B', // jade
-  '#FF7F50', // coral
+const SOLID_COLORS: Record<Exclude<PaletteKey, 'multi' | 'one-red'>, string> = {
+  orange: '#F4A261',
+  red: '#E63946',
+  yellow: '#E9C46A',
+  green: '#2A9D8F',
+  blue: '#2D7DD2',
+  purple: '#8E7DBE',
+  pink: '#F4A6B6',
+  white: '#F5F5F0',
+  black: '#1A1A1A',
+};
+
+const MULTI_PALETTE = [
+  SOLID_COLORS.orange,
+  SOLID_COLORS.red,
+  SOLID_COLORS.yellow,
+  SOLID_COLORS.green,
+  SOLID_COLORS.blue,
+  SOLID_COLORS.purple,
+  SOLID_COLORS.pink,
+  SOLID_COLORS.white,
+  SOLID_COLORS.black,
 ];
+
+function colorForBall(id: number, palette: PaletteKey): string {
+  if (palette === 'multi') return MULTI_PALETTE[(id - 1) % MULTI_PALETTE.length];
+  if (palette === 'one-red') return id === 1 ? SOLID_COLORS.red : SOLID_COLORS.white;
+  return SOLID_COLORS[palette];
+}
 
 export interface HandAnchors {
   leftX: number;
@@ -41,6 +59,8 @@ export class Game {
    *  different rate. */
   private speed = 1;
 
+  private palette: PaletteKey = 'multi';
+
   private nextBallId = 1;
 
   constructor(
@@ -57,6 +77,7 @@ export class Game {
     this.hands.R.balls = [];
     this.lastThrow = null;
     this.nextBallId = 1;
+    if (config.palette) this.palette = config.palette;
 
     // Right hand gets the extra ball when count is odd.
     const right = Math.ceil(config.ballCount / 2);
@@ -70,13 +91,22 @@ export class Game {
     const id = this.nextBallId++;
     const ball: Ball = {
       id,
-      color: BALL_PALETTE[(id - 1) % BALL_PALETTE.length],
+      color: colorForBall(id, this.palette),
       state: 'held',
       hand,
     };
     this.balls.set(id, ball);
     this.hands[hand].balls.push(id);
     return ball;
+  }
+
+  /** Switch the ball palette. Re-colors existing balls so the change is
+   *  immediate without resetting the juggle. */
+  setPalette(palette: PaletteKey): void {
+    this.palette = palette;
+    for (const ball of this.balls.values()) {
+      ball.color = colorForBall(ball.id, palette);
+    }
   }
 
   /**
