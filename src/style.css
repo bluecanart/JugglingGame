@@ -114,6 +114,16 @@ html, body {
 .control select:hover { border-color: var(--ink-soft); }
 .control select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Cap the palette select width so the longest option ("One Red / Others White")
+   doesn't stretch the whole control row. The selected value gets ellipsised;
+   the dropdown menu still shows full names. */
+#palette {
+  max-width: 160px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* --- Stage / canvas --------------------------------------------------------- */
 .stage {
   position: relative;
