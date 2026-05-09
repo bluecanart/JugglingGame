@@ -10,7 +10,10 @@ import type { Hand } from './types.ts';
  * `R` resets.
  */
 export interface InputCallbacks {
-  onThrow: (hand: Hand, value: number) => void;
+  /** `source.clickX` is the canvas-local x for click-driven throws (used by
+   *  the wiring layer to pick a launch point within the hand). Keyboard
+   *  throws omit it. */
+  onThrow: (hand: Hand, value: number, source?: { clickX: number }) => void;
   onReset: () => void;
   /** Fired whenever a hand is picked (click or arrow key) before the throw,
    *  so the UI can flash the picked hand even if it's empty and no throw
@@ -74,7 +77,7 @@ export class InputController {
         if (h !== null) this.selectedHeight = h;
       }
       this.cb.onHandActivate?.(hand);
-      this.cb.onThrow(hand, this.selectedHeight);
+      this.cb.onThrow(hand, this.selectedHeight, { clickX: x });
       e.preventDefault();
     };
 
