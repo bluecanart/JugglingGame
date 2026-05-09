@@ -15,6 +15,9 @@ export class Renderer {
   draw(game: Game, now: number, selectedHeight: number): void {
     const { w, h } = this.getSize();
     const ctx = this.ctx;
+    // Single scale factor for every on-canvas element so hands, balls, labels,
+    // and the floor all shrink together on narrow mobile viewports.
+    const scale = this.uiScale(w);
 
     // Background: warm paper with a subtle vignette.
     ctx.save();
@@ -25,63 +28,73 @@ export class Renderer {
     ctx.fillRect(0, 0, w, h);
 
     // Soft floor line so hands feel anchored
-    this.drawFloor(w, h, game.anchors.y);
+    this.drawFloor(w, h, game.anchors.y, scale);
 
     // Hands
-    this.drawHand(game, 'L');
-    this.drawHand(game, 'R');
+    this.drawHand(game, 'L', scale);
+    this.drawHand(game, 'R', scale);
 
     // Balls — in-flight first (behind hands look) then held (in front).
     // Doing it the other way around looks fine too; this just prevents flicker
     // at catch time when a ball pops to the top of the hand stack.
     for (const ball of game.balls.values()) {
-      if (ball.state === 'flying') this.drawFlyingBall(ball, now);
+      if (ball.state === 'flying') this.drawFlyingBall(ball, now, scale);
     }
-    this.drawHeldBalls(game, 'L');
-    this.drawHeldBalls(game, 'R');
+    this.drawHeldBalls(game, 'L', scale);
+    this.drawHeldBalls(game, 'R', scale);
 
-    this.drawHeightIndicator(w, selectedHeight);
+    this.drawHeightIndicator(w, selectedHeight, scale);
 
     ctx.restore();
   }
 
-  private drawHeightIndicator(w: number, value: number): void {
+  // 800px is the width at which the desktop sizes look right; below that we
+  // shrink proportionally, floored at 0.55 so things don't get unreadable.
+  private uiScale(w: number): number {
+    return Math.min(1, Math.max(0.55, w / 800));
+  }
+
+  private drawHeightIndicator(w: number, value: number, scale: number): void {
     const ctx = this.ctx;
     ctx.save();
-    const x = w - 24;
-    const labelY = 28;
+    const labelSize = 11 * scale;
+    const numberSize = 38 * scale;
+    const margin = 24 * scale;
+    const x = w - margin;
+    const labelY = 28 * scale;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
 
     ctx.fillStyle = 'rgba(40, 30, 20, 0.45)';
-    ctx.font = '600 11px "JetBrains Mono", monospace';
+    ctx.font = `600 ${labelSize}px "JetBrains Mono", monospace`;
     ctx.fillText('THROW HEIGHT', x, labelY);
 
     ctx.fillStyle = '#3B2C24';
-    ctx.font = '800 38px "Fraunces", serif';
-    ctx.fillText(String(value), x, labelY + 38);
+    ctx.font = `800 ${numberSize}px "Fraunces", serif`;
+    ctx.fillText(String(value), x, labelY + numberSize);
     ctx.restore();
   }
 
-  private drawFloor(w: number, h: number, y: number): void {
+  private drawFloor(w: number, h: number, y: number, scale: number): void {
     const ctx = this.ctx;
+    const floorY = y + 60 * scale;
     ctx.save();
     ctx.strokeStyle = 'rgba(40, 30, 20, 0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, y + 60);
-    ctx.lineTo(w, y + 60);
+    ctx.moveTo(0, floorY);
+    ctx.lineTo(w, floorY);
     ctx.stroke();
     // Subtle horizon shadow
-    const shadow = ctx.createLinearGradient(0, y + 60, 0, h);
+    const shadow = ctx.createLinearGradient(0, floorY, 0, h);
     shadow.addColorStop(0, 'rgba(40, 30, 20, 0.06)');
     shadow.addColorStop(1, 'rgba(40, 30, 20, 0)');
     ctx.fillStyle = shadow;
-    ctx.fillRect(0, y + 60, w, h - (y + 60));
+    ctx.fillRect(0, floorY, w, h - floorY);
     ctx.restore();
   }
 
-  private drawHand(game: Game, side: Hand): void {
+  private drawHand(game: Game, side: Hand, scale: number): void {
     const ctx = this.ctx;
     const x = side === 'L' ? game.anchors.leftX : game.anchors.rightX;
     const y = game.anchors.y;
@@ -93,28 +106,28 @@ export class Renderer {
     // A simple pill-shaped "palm" — abstract on purpose, easy to swap later.
     ctx.fillStyle = '#3B2C24';
     ctx.beginPath();
-    const palmW = 90;
-    const palmH = 26;
-    this.roundRect(ctx, x - palmW / 2, y + 18, palmW, palmH, palmH / 2);
+    const palmW = 90 * scale;
+    const palmH = 26 * scale;
+    this.roundRect(ctx, x - palmW / 2, y + 18 * scale, palmW, palmH, palmH / 2);
     ctx.fill();
 
     // Forearm hint
     ctx.fillStyle = 'rgba(59, 44, 36, 0.55)';
     ctx.beginPath();
-    const armW = 26;
-    const armOffset = side === 'L' ? -28 : 28;
-    this.roundRect(ctx, x + armOffset - armW / 2, y + 38, armW, 80, 10);
+    const armW = 26 * scale;
+    const armOffset = (side === 'L' ? -28 : 28) * scale;
+    this.roundRect(ctx, x + armOffset - armW / 2, y + 38 * scale, armW, 80 * scale, 10 * scale);
     ctx.fill();
 
     // Label
     ctx.fillStyle = 'rgba(40, 30, 20, 0.45)';
-    ctx.font = '600 11px "JetBrains Mono", monospace';
+    ctx.font = `600 ${11 * scale}px "JetBrains Mono", monospace`;
     ctx.textAlign = 'center';
-    ctx.fillText(side === 'L' ? 'LEFT' : 'RIGHT', x, y + 86);
+    ctx.fillText(side === 'L' ? 'LEFT' : 'RIGHT', x, y + 86 * scale);
     ctx.restore();
   }
 
-  private drawHeldBalls(game: Game, side: Hand): void {
+  private drawHeldBalls(game: Game, side: Hand, scale: number): void {
     const hand = game.hands[side];
     const x = side === 'L' ? game.anchors.leftX : game.anchors.rightX;
     const y = game.anchors.y;
@@ -122,23 +135,23 @@ export class Renderer {
     hand.balls.forEach((id, i) => {
       const ball = game.balls.get(id)!;
       // Tiny horizontal jitter (deterministic by id) so multiple balls don't perfectly overlap
-      const jitter = ((id * 37) % 11) - 5;
+      const jitter = (((id * 37) % 11) - 5) * scale;
       const bx = x + jitter;
-      const by = y + 8 - i * 4; // slight vertical stacking
-      this.drawBall(ball, bx, by);
+      const by = y + (8 - i * 4) * scale;
+      this.drawBall(ball, bx, by, scale);
     });
   }
 
-  private drawFlyingBall(ball: Ball, now: number): void {
+  private drawFlyingBall(ball: Ball, now: number, scale: number): void {
     const t = ball.throw!;
     const progress = Math.min(1, Math.max(0, (now - t.startTime) / (t.endTime - t.startTime)));
     const { x, y } = arcPosition(t.startX, t.startY, t.endX, t.endY, t.peakHeight, progress);
-    this.drawBall(ball, x, y);
+    this.drawBall(ball, x, y, scale);
   }
 
-  private drawBall(ball: Ball, x: number, y: number): void {
+  private drawBall(ball: Ball, x: number, y: number, scale: number): void {
     const ctx = this.ctx;
-    const r = 14;
+    const r = 14 * scale;
 
     // Ground shadow that follows the ball — fades with height above palm
     // (we don't have direct "height" here, but flying balls render relative to palm Y;
