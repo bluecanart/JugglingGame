@@ -151,7 +151,7 @@ export class Renderer {
     // A simple pill-shaped "palm" — abstract on purpose, easy to swap later.
     ctx.fillStyle = flash > 0 ? this.darken('#3B2C24', flash * 0.6) : '#3B2C24';
     ctx.beginPath();
-    const palmW = 90 * scale;
+    const palmW = 2 * game.anchors.palmHalfWidth;
     const palmH = 26 * scale;
     this.roundRect(ctx, x - palmW / 2, y + 18 * scale, palmW, palmH, palmH / 2);
     ctx.fill();

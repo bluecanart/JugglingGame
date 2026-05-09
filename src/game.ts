@@ -39,6 +39,13 @@ export interface HandAnchors {
   leftX: number;
   rightX: number;
   y: number;
+  /** Half the visible palm width in canvas px. Used by the renderer to draw
+   *  the palm and by `throwBall` to offset throws within the hand based on
+   *  the click position. */
+  palmHalfWidth: number;
+  /** Visible ball radius in canvas px. Mirrors the renderer's ball size so
+   *  `throwBall` can express height nudges in "ball-height" units. */
+  ballRadius: number;
 }
 
 /**
@@ -115,9 +122,16 @@ export class Game {
 
   /**
    * Attempt to throw from `fromHand` with siteswap value `value`.
+   *
+   * `widthFactor` ∈ [-1, 1] picks the launch point within the source hand's
+   * width: `-1` = inner edge (toward the canvas center), `0` = center,
+   * `+1` = outer edge (toward the canvas edge). The destination is always
+   * the center of the catching hand, so balls converge cleanly regardless of
+   * where in the source hand they were launched from.
+   *
    * Returns true if a throw happened, false if the hand was empty.
    */
-  throwBall(fromHand: Hand, value: number, now: number): boolean {
+  throwBall(fromHand: Hand, value: number, now: number, widthFactor = 0): boolean {
     const hand = this.hands[fromHand];
     if (hand.balls.length === 0) return false;
 
@@ -126,9 +140,20 @@ export class Game {
 
     const toHand = destinationHand(fromHand, value);
     const air = (airTimeSeconds(value) * 1000) / this.speed;
-    const peak = peakHeightPx(value, this.anchors.y);
+    // Outer throws peak ~half a ball-height higher than a center throw,
+    // inner throws ~half a ball-height lower (one radius is half a ball
+    // diameter). Linear in widthFactor.
+    const peak =
+      peakHeightPx(value, this.anchors.y) + widthFactor * this.anchors.ballRadius;
 
-    const startX = fromHand === 'L' ? this.anchors.leftX : this.anchors.rightX;
+    // For the source hand, "outer" runs away from the canvas center: -x for
+    // the left hand, +x for the right. Apply the factor only to startX so
+    // the ball always lands at the destination hand's center.
+    const halfW = this.anchors.palmHalfWidth;
+    const sourceOutwardSign = fromHand === 'L' ? -1 : 1;
+    const startX =
+      (fromHand === 'L' ? this.anchors.leftX : this.anchors.rightX) +
+      sourceOutwardSign * widthFactor * halfW;
     const endX = toHand === 'L' ? this.anchors.leftX : this.anchors.rightX;
     const y = this.anchors.y;
 
