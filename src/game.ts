@@ -72,6 +72,10 @@ export class Game {
 
   private palette: PaletteKey = 'multi';
 
+  /** When false, a `2` is treated as a 2-beat hold: the ball stays in the hand
+   *  with no throw animation, rather than a small toss. */
+  private activeTwos = true;
+
   private nextBallId = 1;
 
   constructor(
@@ -129,16 +133,41 @@ export class Game {
    * the center of the catching hand, so balls converge cleanly regardless of
    * where in the source hand they were launched from.
    *
+   * `crossOverride` forces the destination hand instead of deriving it from
+   * the value's parity. Sequence mode uses this for synchronous `x` throws
+   * (e.g. `2x`), where an even value still crosses to the other hand. When
+   * omitted, the standard parity rule applies (odd crosses, even stays).
+   *
    * Returns true if a throw happened, false if the hand was empty.
    */
-  throwBall(fromHand: Hand, value: number, now: number, widthFactor = 0): boolean {
+  throwBall(
+    fromHand: Hand,
+    value: number,
+    now: number,
+    widthFactor = 0,
+    crossOverride?: boolean,
+  ): boolean {
     const hand = this.hands[fromHand];
-    if (hand.balls.length === 0) return false;
+    if (hand.balls.length === 0 || value <= 0) return false;
+
+    const toHand =
+      crossOverride === undefined
+        ? destinationHand(fromHand, value)
+        : crossOverride
+          ? fromHand === 'L'
+            ? 'R'
+            : 'L'
+          : fromHand;
+
+    // A same-hand `2` with active-2s off is a hold: the ball stays put, no
+    // flight. Cross-hand 2s (`2x`) are genuine passes, so they always animate.
+    if (value === 2 && !this.activeTwos && toHand === fromHand) {
+      this.lastThrow = { value, fromHand };
+      return true;
+    }
 
     const ballId = hand.balls.pop()!;
     const ball = this.balls.get(ballId)!;
-
-    const toHand = destinationHand(fromHand, value);
     const air = (airTimeSeconds(value) * 1000) / this.speed;
     // Outer throws peak ~half a ball-height higher than a center throw,
     // inner throws ~half a ball-height lower (one radius is half a ball
@@ -179,6 +208,25 @@ export class Game {
   }
 
   /**
+   * Instantly move the top ball of `fromHand` into the other hand (no arc).
+   * Used by Sequence mode's click-to-transfer so the user can nudge balls
+   * between hands to set up or unstick a pattern. Returns true if a ball moved.
+   */
+  handOff(fromHand: Hand): boolean {
+    const from = this.hands[fromHand];
+    if (from.balls.length === 0) return false;
+
+    const toHand: Hand = fromHand === 'L' ? 'R' : 'L';
+    const ballId = from.balls.pop()!;
+    const ball = this.balls.get(ballId)!;
+    ball.state = 'held';
+    ball.hand = toHand;
+    ball.throw = undefined;
+    this.hands[toHand].balls.push(ballId);
+    return true;
+  }
+
+  /**
    * Advance time and resolve any catches. Should be called every animation frame.
    */
   update(now: number): void {
@@ -203,6 +251,18 @@ export class Game {
    *  in-flight balls keep their original timing. */
   setSpeed(speed: number): void {
     this.speed = speed;
+  }
+
+  /** Current throw-time multiplier. Sequence mode reads this so its beat
+   *  spacing tracks the visual speed. */
+  getSpeed(): number {
+    return this.speed;
+  }
+
+  /** Toggle whether a `2` animates a small toss (true) or is a 2-beat hold
+   *  (false). */
+  setActiveTwos(active: boolean): void {
+    this.activeTwos = active;
   }
 
   /** Record a click on `side` so the renderer can flash that hand. */

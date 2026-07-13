@@ -23,7 +23,12 @@ export class Renderer {
     private getSize: () => { w: number; h: number; dpr: number },
   ) {}
 
-  draw(game: Game, now: number, selectedHeight: number): void {
+  draw(
+    game: Game,
+    now: number,
+    selectedHeight: number,
+    queuedHand: Hand | null = null,
+  ): void {
     const { w, h } = this.getSize();
     const ctx = this.ctx;
     // Single scale factor for every on-canvas element so hands, balls, labels,
@@ -47,6 +52,9 @@ export class Renderer {
     // Hands
     this.drawHand(game, 'L', scale, now);
     this.drawHand(game, 'R', scale, now);
+
+    // Sequence mode: mark the hand queued to throw next.
+    if (queuedHand) this.drawQueuedIndicator(game, queuedHand, scale, now);
 
     // Balls — in-flight first (behind hands look) then held (in front).
     // Doing it the other way around looks fine too; this just prevents flicker
@@ -170,6 +178,36 @@ export class Renderer {
     ctx.font = `600 ${11 * scale}px "JetBrains Mono", monospace`;
     ctx.textAlign = 'center';
     ctx.fillText(side === 'L' ? 'LEFT' : 'RIGHT', x, y + 86 * scale);
+    ctx.restore();
+  }
+
+  /**
+   * A small accent caret beneath a hand's label, pointing up at the hand that
+   * is queued to throw next in Sequence mode. Gently pulses so it reads as a
+   * live cue without stealing focus from the balls.
+   */
+  private drawQueuedIndicator(game: Game, side: Hand, scale: number, now: number): void {
+    const ctx = this.ctx;
+    const x = side === 'L' ? game.anchors.leftX : game.anchors.rightX;
+    const y = game.anchors.y + 98 * scale;
+    const pulse = 0.7 + 0.3 * Math.sin(now / 260);
+    const s = 7 * scale;
+
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#C84B31'; // --accent
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - s, y + s * 1.4);
+    ctx.lineTo(x + s, y + s * 1.4);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = pulse;
+    ctx.font = `600 ${9 * scale}px "JetBrains Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('NEXT', x, y + s * 1.4 + 3 * scale);
     ctx.restore();
   }
 

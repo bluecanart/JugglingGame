@@ -124,6 +124,101 @@ html, body {
   white-space: nowrap;
 }
 
+/* --- Mode toggle ------------------------------------------------------------ */
+.mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+
+.mode-toggle button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 8px 16px;
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.mode-toggle button + button { border-left: 1px solid var(--rule); }
+.mode-toggle button:hover { color: var(--ink); }
+.mode-toggle button.active {
+  background: var(--ink);
+  color: var(--panel);
+}
+
+/* --- Sequence bar ----------------------------------------------------------- */
+.sequence-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  padding: 12px 16px;
+}
+.sequence-bar[hidden] { display: none; }
+
+.seq-play {
+  appearance: none;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--panel);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 9px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 96px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.seq-play:hover { background: var(--accent); border-color: var(--accent); }
+.seq-play.playing { background: var(--accent); border-color: var(--accent); }
+
+.seq-reset {
+  appearance: none;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 9px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+.seq-reset:hover { border-color: var(--ink-soft); color: var(--accent); }
+
+.seq-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  padding: 9px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+.seq-input:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.seq-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
 /* --- Stage / canvas --------------------------------------------------------- */
 .stage {
   position: relative;
@@ -151,6 +246,8 @@ html, body {
   color: var(--ink-soft);
   pointer-events: none;
 }
+
+.legend[hidden] { display: none; }
 
 .legend-row {
   display: flex;
@@ -205,4 +302,8 @@ kbd {
 @media (max-width: 640px) {
   .topbar { flex-direction: column; align-items: stretch; }
   .readout { grid-template-columns: repeat(2, 1fr); }
+  .controls { flex-wrap: wrap; }
+  .sequence-bar { flex-wrap: wrap; }
+  .seq-input { flex-basis: 100%; order: 3; }
+  .seq-status { max-width: 100%; order: 4; }
 }

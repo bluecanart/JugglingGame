@@ -18,6 +18,20 @@
           <span class="brand-sub">a juggling sandbox</span>
         </div>
         <div class="controls">
+          <div class="control">
+            <span>Mode</span>
+            <div class="mode-toggle" id="mode-toggle" role="group" aria-label="Input mode">
+              <button type="button" data-mode="manual" class="active">Manual</button>
+              <button type="button" data-mode="sequence">Sequence</button>
+            </div>
+          </div>
+          <div class="control">
+            <span>Active 2s</span>
+            <div class="mode-toggle" id="active-twos" role="group" aria-label="Active twos">
+              <button type="button" data-on="true" class="active">On</button>
+              <button type="button" data-on="false">Off</button>
+            </div>
+          </div>
           <label class="control">
             <span>Balls</span>
             <select id="ball-count">
@@ -57,13 +71,35 @@
 
       <section class="stage">
         <canvas id="stage"></canvas>
-        <div class="legend">
+        <div class="legend" id="legend-manual">
           <div class="legend-row"><kbd>1</kbd>–<kbd>9</kbd> <span>throw height</span></div>
           <div class="legend-row"><kbd>↑</kbd> / <kbd>↓</kbd> <span>step throw height up / down</span></div>
           <div class="legend-row"><kbd>←</kbd> / <kbd>→</kbd> <span>which hand throws</span></div>
           <div class="legend-row"><kbd>click</kbd> <span>throws from the nearer hand at the height nearest your click</span></div>
           <div class="legend-row"><kbd>R</kbd> <span>reset</span></div>
         </div>
+        <div class="legend" id="legend-sequence" hidden>
+          <div class="legend-row"><kbd>531</kbd> <span>standard siteswap — hands alternate</span></div>
+          <div class="legend-row"><kbd>[43]2</kbd> <span>multiplex — two balls from one hand</span></div>
+          <div class="legend-row"><kbd>(4,2x)</kbd> <span>synchronous — (next hand, other hand) · <kbd>x</kbd> crosses</span></div>
+          <div class="legend-row"><kbd>click</kbd> <span>pass a ball to the other hand</span></div>
+          <div class="legend-row"><kbd>R</kbd> <span>reset</span></div>
+        </div>
+      </section>
+
+      <section class="sequence-bar" id="sequence-bar" hidden>
+        <button type="button" id="seq-play" class="seq-play" aria-label="Play sequence">▶ Play</button>
+        <button type="button" id="seq-reset" class="seq-reset" aria-label="Reset juggle">↺ Reset</button>
+        <input
+          id="pattern"
+          class="seq-input"
+          type="text"
+          value="531"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="e.g. 531  ·  [43]23  ·  (4,4)  ·  (4,2x)"
+        />
+        <span id="seq-status" class="seq-status" role="status" aria-live="polite"></span>
       </section>
 
       <footer class="readout">
